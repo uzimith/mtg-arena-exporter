@@ -264,7 +264,8 @@ def render_lands_html(rows: list[dict]) -> str:
     wanted = {l["name"] for c in LAND_CYCLES for l in c["lands"]}
     counts: dict[str, dict[str, int]] = {}
     for r in rows:
-        name = r.get("Name", "")
+        raw_name = r.get("Name", "")
+        name = raw_name.split(" // ", 1)[0]
         if name in wanted:
             code = r.get("Set Code", "") or "?"
             n = int(r.get("Count", 0) or 0)
