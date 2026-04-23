@@ -275,7 +275,7 @@ def render_lands_html(rows: list[dict]) -> str:
             counts[name][code] = counts[name].get(code, 0) + n
 
     def total(n: str) -> int:
-        return sum(counts.get(n, {}).values())
+        return min(sum(counts.get(n, {}).values()), 4)
 
     all_lands = [l for c in LAND_CYCLES for l in c["lands"]]
     total_max = len(all_lands) * 4
