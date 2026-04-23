@@ -9,6 +9,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from lands_report import render_lands_html
+
 SCRYFALL_BULK_INDEX = "https://api.scryfall.com/bulk-data"
 
 HEADERS = {
@@ -122,6 +124,8 @@ def main() -> int:
                    help="output CSV path")
     p.add_argument("--cache", default=str(Path.home() / ".cache" / "mtga-export"),
                    help="Scryfall bulk-data cache directory")
+    p.add_argument("--html", default=None,
+                   help="optional HTML 2-color land report output path")
     args = p.parse_args()
 
     print(f"→ querying daemon at {args.daemon}")
@@ -158,6 +162,12 @@ def main() -> int:
         w.writerows(rows)
 
     print(f"✓ wrote {out} ({len(rows)} rows)")
+
+    if args.html:
+        html_path = Path(args.html)
+        html_path.write_text(render_lands_html(rows), encoding="utf-8")
+        print(f"✓ wrote {html_path}")
+
     if missing:
         print(f"! {len(missing)} grpIds had no Scryfall arena_id match "
               "(typically Alchemy or rebalanced cards):")
