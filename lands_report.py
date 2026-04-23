@@ -99,7 +99,7 @@ LAND_CYCLES: list[dict] = [
         ],
     },
     {
-        "name": "サーベイランド", "en": "Surveil Lands",
+        "name": "諜報ランド", "en": "Surveil Lands",
         "mechanic": "ETBタップ＋諜報1",
         "lands": [
             {"name": "Meticulous Archive",   "jp": "行き届いた書庫",      "pair": "WU", "rel": "ally"},
@@ -115,7 +115,7 @@ LAND_CYCLES: list[dict] = [
         ],
     },
     {
-        "name": "ヴァージランド", "en": "Verge Lands",
+        "name": "境界ランド", "en": "Verge Lands",
         "mechanic": "1色は常時、もう1色は対応基本土地タイプ持ちで出せる",
         "lands": [
             {"name": "Floodfarm Verge",  "jp": "フラッドファームの境界", "pair": "WU", "rel": "ally"},
@@ -129,7 +129,7 @@ LAND_CYCLES: list[dict] = [
         ],
     },
     {
-        "name": "スクライランド", "en": "Scry Lands / Temples",
+        "name": "占術ランド", "en": "Scry Lands / Temples",
         "mechanic": "ETBタップ＋占術1",
         "lands": [
             {"name": "Temple of Enlightenment", "jp": "啓蒙の神殿", "pair": "WU", "rel": "ally"},
