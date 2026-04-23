@@ -83,7 +83,7 @@ LAND_CYCLES: list[dict] = [
         ],
     },
     {
-        "name": "パスウェイ", "en": "Pathways (MDFC)",
+        "name": "小道", "en": "Pathways (MDFC)",
         "mechanic": "両面土地 — 片面はどちらかの色を出す土地",
         "lands": [
             {"name": "Hengegate Pathway",   "jp": "連門の小道",     "pair": "WU", "rel": "ally"},
@@ -148,6 +148,19 @@ LAND_CYCLES: list[dict] = [
 
 PAIR_ORDER = ["WU", "UB", "BR", "RG", "GW", "WB", "UR", "BG", "RW", "GU"]
 
+PAIR_META: dict[str, dict] = {
+    "WU": {"jp": "白青", "en": "Azorius",  "rel": "ally"},
+    "UB": {"jp": "青黒", "en": "Dimir",    "rel": "ally"},
+    "BR": {"jp": "黒赤", "en": "Rakdos",   "rel": "ally"},
+    "RG": {"jp": "赤緑", "en": "Gruul",    "rel": "ally"},
+    "GW": {"jp": "緑白", "en": "Selesnya", "rel": "ally"},
+    "WB": {"jp": "白黒", "en": "Orzhov",   "rel": "enemy"},
+    "UR": {"jp": "青赤", "en": "Izzet",    "rel": "enemy"},
+    "BG": {"jp": "黒緑", "en": "Golgari",  "rel": "enemy"},
+    "RW": {"jp": "赤白", "en": "Boros",    "rel": "enemy"},
+    "GU": {"jp": "緑青", "en": "Simic",    "rel": "enemy"},
+}
+
 _HTML_CSS = """@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Noto+Serif+JP:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root {
@@ -194,7 +207,7 @@ h1 { font-family: 'Noto Serif JP', serif; font-weight: 800; font-size: clamp(28p
 .cycle-header { padding: 16px 22px 12px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
 .cycle-name h2 { font-family: 'Noto Serif JP', serif; font-weight: 800; font-size: 20px; margin: 0; display: inline-block; margin-right: 12px; }
 .cycle-name .en { font-family: 'Cormorant Garamond', serif; font-style: italic; color: var(--accent); font-size: 15px; }
-.cycle-mechanic { font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+.cycle-mechanic { font-size: 12px; color: var(--ink-dim); margin-top: 6px; display: flex; align-items: center; gap: 8px; }
 .progress { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .progress-bar { width: 120px; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #e0b770); }
@@ -206,7 +219,10 @@ td { padding: 10px 14px; border-bottom: 1px solid rgba(42,45,56,0.5); vertical-a
 tr:last-child td { border-bottom: none; }
 tr.owned td { background: rgba(122,168,109,0.04); }
 tr.empty td { opacity: 0.55; }
+tr.missing td { opacity: 0.4; }
 tr:hover td { background: rgba(200,162,92,0.05); }
+.cycle-type { font-weight: 600; }
+.cycle-type .mech { display: block; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 11px; color: var(--ink-dim); font-weight: 400; margin-top: 2px; }
 .land-name { font-weight: 500; }
 .land-name .jp { display: block; font-size: 11px; color: var(--ink-dim); font-weight: 400; margin-top: 1px; }
 .mana-pair { display: inline-flex; gap: 3px; }
@@ -228,9 +244,10 @@ tr:hover td { background: rgba(200,162,92,0.05); }
 .total-cell.none { color: var(--ink-faint); }
 .breakdown-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--line); }
 .breakdown-section h3 { font-family: 'Noto Serif JP', serif; font-weight: 800; font-size: 20px; margin: 0 0 20px; }
-.pair-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.pair-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
 .pair-cell { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; border-radius: 2px; }
-.pair-cell-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.pair-cell-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+.pair-cell .name { font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 14px; }
 .pair-cell .count { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--accent); }
 .pair-cell .count .max { color: var(--ink-faint); font-size: 12px; }
 .pair-cell .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: var(--ink-dim); text-transform: uppercase; margin-bottom: 8px; }
@@ -317,46 +334,60 @@ def render_lands_html(rows: list[dict]) -> str:
   </div>
 </div>"""
 
-    cycle_html_parts: list[str] = []
-    for cycle in LAND_CYCLES:
-        cycle_owned = sum(total(l["name"]) for l in cycle["lands"])
-        cycle_max = len(cycle["lands"]) * 4
-        pct = min(round(cycle_owned / cycle_max * 100), 100) if cycle_max else 0
+    pair_html_parts: list[str] = []
+    for pair in PAIR_ORDER:
+        meta = PAIR_META[pair]
+        rel_label = "友好" if meta["rel"] == "ally" else "対抗"
 
         rows_html: list[str] = []
-        for land in cycle["lands"]:
+        pair_owned = 0
+        pair_max = 0
+        for cycle in LAND_CYCLES:
+            land = next((l for l in cycle["lands"] if l["pair"] == pair), None)
+            if land is None:
+                rows_html.append(f"""      <tr class="missing">
+        <td class="cycle-type">{html.escape(cycle["name"])}<span class="mech">{html.escape(cycle["en"])}</span></td>
+        <td class="land-name" style="color:var(--ink-faint)">未収録<span class="jp">このサイクルに該当カードなし</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">—</td>
+      </tr>""")
+                continue
+
             t = total(land["name"])
+            pair_owned += t
+            pair_max += 4
             row_class = "owned" if t > 0 else "empty"
-            rel_label = "友好" if land["rel"] == "ally" else "対抗"
+            set_cell = _set_breakdown_html(counts.get(land["name"], {}))
+            total_val = t if t > 0 else 0
             rows_html.append(f"""      <tr class="{row_class}">
+        <td class="cycle-type">{html.escape(cycle["name"])}<span class="mech">{html.escape(cycle["en"])}</span></td>
         <td class="land-name">{html.escape(land["name"])}<span class="jp">{html.escape(land["jp"])}</span></td>
-        <td><span class="mana-pair">{_mana_pair_html(land["pair"])}</span></td>
-        <td><span class="relation {land["rel"]}">{rel_label}</span></td>
-        <td class="set-breakdown">{_set_breakdown_html(counts.get(land["name"], {}))}</td>
-        <td class="total-cell {_total_cell_class(t)}">{t}</td>
+        <td class="set-breakdown">{set_cell}</td>
+        <td class="total-cell {_total_cell_class(t)}">{total_val}</td>
       </tr>""")
 
-        cycle_html_parts.append(f"""<section class="cycle">
+        pct = min(round(pair_owned / pair_max * 100), 100) if pair_max else 0
+
+        pair_html_parts.append(f"""<section class="cycle">
   <div class="cycle-header">
     <div>
       <div class="cycle-name">
-        <h2>{html.escape(cycle["name"])}</h2>
-        <span class="en">{html.escape(cycle["en"])}</span>
+        <h2>{html.escape(meta["jp"])}</h2>
+        <span class="en">{html.escape(meta["en"])}</span>
       </div>
-      <div class="cycle-mechanic">{html.escape(cycle["mechanic"])}</div>
+      <div class="cycle-mechanic"><span class="mana-pair">{_mana_pair_html(pair)}</span> <span class="relation {meta["rel"]}">{rel_label}</span></div>
     </div>
     <div class="progress">
       <div class="progress-bar"><div class="progress-fill" style="width:{pct}%"></div></div>
-      <span class="progress-num">{cycle_owned}</span>
-      <span class="progress-max">/ {cycle_max}</span>
+      <span class="progress-num">{pair_owned}</span>
+      <span class="progress-max">/ {pair_max}</span>
     </div>
   </div>
   <table>
     <thead>
       <tr>
+        <th style="width:200px">種類</th>
         <th>カード名</th>
-        <th style="width:100px">色</th>
-        <th style="width:70px">関係</th>
         <th>セット内訳</th>
         <th style="width:80px;text-align:center">合計</th>
       </tr>
@@ -367,32 +398,24 @@ def render_lands_html(rows: list[dict]) -> str:
   </table>
 </section>""")
 
-    pair_stats: dict[str, dict] = {p: {"owned": 0, "max": 0, "rel": "ally"} for p in PAIR_ORDER}
+    cycle_cells: list[str] = []
     for cycle in LAND_CYCLES:
-        for land in cycle["lands"]:
-            p = land["pair"]
-            pair_stats[p]["owned"] += total(land["name"])
-            pair_stats[p]["max"] += 4
-            pair_stats[p]["rel"] = land["rel"]
-
-    pair_cells: list[str] = []
-    for p in PAIR_ORDER:
-        st = pair_stats[p]
-        pct = min(round(st["owned"] / st["max"] * 100), 100) if st["max"] else 0
-        rel_label = "友好色" if st["rel"] == "ally" else "対抗色"
-        pair_cells.append(f"""  <div class="pair-cell">
+        owned = sum(total(l["name"]) for l in cycle["lands"])
+        cmax = len(cycle["lands"]) * 4
+        pct = min(round(owned / cmax * 100), 100) if cmax else 0
+        cycle_cells.append(f"""  <div class="pair-cell">
     <div class="pair-cell-head">
-      <span class="mana-pair">{_mana_pair_html(p)}</span>
-      <span class="count">{st["owned"]}<span class="max"> / {st["max"]}</span></span>
+      <span class="name">{html.escape(cycle["name"])}</span>
+      <span class="count">{owned}<span class="max"> / {cmax}</span></span>
     </div>
-    <div class="label">{p} · {rel_label}</div>
+    <div class="label">{html.escape(cycle["en"])}</div>
     <div class="mini-bar"><div class="mini-fill" style="width:{pct}%"></div></div>
   </div>""")
 
-    pair_section = f"""<div class="breakdown-section">
-  <h3>色ペア別 集計</h3>
+    cycle_section = f"""<div class="breakdown-section">
+  <h3>種類別 集計</h3>
   <div class="pair-matrix">
-{chr(10).join(pair_cells)}
+{chr(10).join(cycle_cells)}
   </div>
 </div>"""
 
@@ -410,8 +433,8 @@ def render_lands_html(rows: list[dict]) -> str:
   <h1>2色土地コレクション集計</h1>
   <div class="subtitle">コレクションCSVから、主要な2色土地サイクルを抽出・集計した結果です。各カードはMTGAで最大4枚まで持てますが、複数セットからの印刷を合算しているため4枚を超える場合もあります（デッキ投入には4枚で十分）。</div>
 {top_stats}
-{chr(10).join(cycle_html_parts)}
-{pair_section}
+{chr(10).join(pair_html_parts)}
+{cycle_section}
 </div>
 </body>
 </html>
