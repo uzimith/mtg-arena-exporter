@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>MTGA 2色土地コレクション集計</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;700&family=Noto+Serif+JP:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --bg: #0f1014;
+  --panel: #1a1c22;
+  --panel-2: #222530;
+  --ink: #e8e4d8;
+  --ink-dim: #9a9689;
+  --ink-faint: #4a4740;
+  --accent: #c8a25c;
+  --ally: #5b9ea8;
+  --enemy: #c07b5a;
+  --good: #7aa86d;
+  --warn: #d4a84b;
+  --bad: #c07b5a;
+  --line: #2a2d38;
+  --W: #fbf6d6;
+  --U: #6ab6e5;
+  --B: #a69ba3;
+  --R: #e87a56;
+  --G: #6aa870;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at top, rgba(200,162,92,0.06), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(91,158,168,0.04), transparent 60%);
+  color: var(--ink);
+  font-family: 'Noto Serif JP', 'Cormorant Garamond', Georgia, serif;
+  line-height: 1.5;
+}
+.container { max-width: 1150px; margin: 0 auto; padding: 32px 24px 80px; }
+.eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.25em; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+h1 { font-family: 'Noto Serif JP', serif; font-weight: 800; font-size: clamp(28px, 4vw, 40px); margin: 0 0 12px; letter-spacing: -0.01em; }
+.subtitle { color: var(--ink-dim); font-size: 14px; max-width: 720px; margin-bottom: 28px; }
+.top-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 40px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.stat { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; border-radius: 2px; }
+.stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--ink-dim); text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 500; color: var(--accent); line-height: 1; }
+.stat-detail { font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
+.cycle { margin-top: 32px; background: var(--panel); border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
+.cycle-header { padding: 16px 22px 12px; background: linear-gradient(180deg, var(--panel-2), var(--panel)); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.cycle-name h2 { font-family: 'Noto Serif JP', serif; font-weight: 800; font-size: 20px; margin: 0; display: inline-block; margin-right: 12px; }
+.cycle-name .en { font-family: 'Cormorant Garamond', serif; font-style: italic; color: var(--accent); font-size: 15px; }
+.cycle-mechanic { font-size: 12px; color: var(--ink-dim); margin-top: 6px; display: flex; align-items: center; gap: 8px; }
+.progress { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.progress-bar { width: 120px; height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #e0b770); }
+.progress-num { color: var(--accent); font-weight: 600; }
+.progress-max { color: var(--ink-dim); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--ink-dim); text-transform: uppercase; font-weight: 500; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+td { padding: 10px 14px; border-bottom: 1px solid rgba(42,45,56,0.5); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr.owned td { background: rgba(122,168,109,0.04); }
+tr.empty td { opacity: 0.55; }
+tr.missing td { opacity: 0.4; }
+tr:hover td { background: rgba(200,162,92,0.05); }
+.cycle-type { font-weight: 600; }
+.cycle-type .mech { display: block; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 11px; color: var(--ink-dim); font-weight: 400; margin-top: 2px; }
+.land-name { font-weight: 500; }
+.land-name .jp { display: block; font-size: 11px; color: var(--ink-dim); font-weight: 400; margin-top: 1px; }
+.mana-pair { display: inline-flex; gap: 3px; }
+.mana { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #1a1a1a; border: 1px solid rgba(0,0,0,0.3); }
+.mana.W { background: var(--W); }
+.mana.U { background: var(--U); color: #0a2030; }
+.mana.B { background: var(--B); }
+.mana.R { background: var(--R); }
+.mana.G { background: var(--G); }
+.relation { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 7px; border-radius: 2px; display: inline-block; }
+.relation.ally { color: var(--ally); border: 1px solid rgba(91,158,168,0.3); background: rgba(91,158,168,0.08); }
+.relation.enemy { color: var(--enemy); border: 1px solid rgba(192,123,90,0.3); background: rgba(192,123,90,0.08); }
+.set-breakdown { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-dim); }
+.set-breakdown .set-pill { display: inline-block; padding: 1px 6px; background: rgba(200,162,92,0.08); border: 1px solid rgba(200,162,92,0.15); border-radius: 2px; margin-right: 3px; color: var(--ink); }
+.set-breakdown .set-pill .n { color: var(--accent); margin-left: 3px; font-weight: 600; }
+.total-cell { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; text-align: center; width: 80px; }
+.total-cell.full { color: var(--good); }
+.total-cell.some { color: var(--warn); }
+.total-cell.none { color: var(--ink-faint); }
+.breakdown-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--line); }
+.breakdown-section h3 { font-family: 'Noto Serif JP', serif; font-weight: 800; font-size: 20px; margin: 0 0 20px; }
+.pair-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.pair-cell { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; border-radius: 2px; }
+.pair-cell-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+.pair-cell .name { font-family: 'Noto Serif JP', serif; font-weight: 700; font-size: 14px; }
+.pair-cell .count { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: var(--accent); }
+.pair-cell .count .max { color: var(--ink-faint); font-size: 12px; }
+.pair-cell .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: var(--ink-dim); text-transform: uppercase; margin-bottom: 8px; }
+.pair-cell .mini-bar { height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.pair-cell .mini-fill { height: 100%; background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="eyebrow">MTGA / 2-color lands / collection report</div>
+  <h1>2色土地コレクション集計</h1>
+  <div class="subtitle">コレクションCSVから、主要な2色土地サイクルを抽出・集計した結果です。各カードはMTGAで最大4枚まで持てますが、複数セットからの印刷を合算しているため4枚を超える場合もあります（デッキ投入には4枚で十分）。</div>
+<div class="top-stats">
+  <div class="stat">
+    <div class="stat-label">総所持枚数</div>
+    <div class="stat-value">229<span style="color:var(--ink-dim);font-size:16px"> / 352</span></div>
+    <div class="stat-detail">65% 完成度（88種×4）</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">所持している種類</div>
+    <div class="stat-value">74<span style="color:var(--ink-dim);font-size:16px"> / 88</span></div>
+    <div class="stat-detail">84% カバー率</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">友好色</div>
+    <div class="stat-value" style="color:var(--ally)">97<span style="color:var(--ink-dim);font-size:16px"> / 180</span></div>
+    <div class="stat-detail">54%</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">対抗色</div>
+    <div class="stat-value" style="color:var(--enemy)">132<span style="color:var(--ink-dim);font-size:16px"> / 172</span></div>
+    <div class="stat-detail">77%</div>
+  </div>
+</div>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>白青</h2>
+        <span class="en">Azorius</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana W">W</span><span class="mana U">U</span></span> <span class="relation ally">友好</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:61%"></div></div>
+      <span class="progress-num">22</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Deserted Beach<span class="jp">さびれた浜</span></td>
+        <td class="set-breakdown"><span class="set-pill">MID<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Hallowed Fountain<span class="jp">神聖なる泉</span></td>
+        <td class="set-breakdown"><span class="set-pill">RNA<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Glacial Fortress<span class="jp">氷河の城砦</span></td>
+        <td class="set-breakdown"><span class="set-pill">XLN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Seachrome Coast<span class="jp">金属海の沿岸</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Adarkar Wastes<span class="jp">アダーカー荒原</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Hengegate Pathway<span class="jp">連門の小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">KHM<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Meticulous Archive<span class="jp">行き届いた書庫</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Floodfarm Verge<span class="jp">フラッドファームの境界</span></td>
+        <td class="set-breakdown"><span class="set-pill">DSK<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Enlightenment<span class="jp">啓蒙の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">THB<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell some">3</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>青黒</h2>
+        <span class="en">Dimir</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana U">U</span><span class="mana B">B</span></span> <span class="relation ally">友好</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:53%"></div></div>
+      <span class="progress-num">19</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Shipwreck Marsh<span class="jp">難破船の湿地</span></td>
+        <td class="set-breakdown"><span class="set-pill">MID<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Watery Grave<span class="jp">湿った墓</span></td>
+        <td class="set-breakdown"><span class="set-pill">GRN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Drowned Catacomb<span class="jp">水没した地下墓地</span></td>
+        <td class="set-breakdown"><span class="set-pill">XLN<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Darkslick Shores<span class="jp">闇滑りの岸</span></td>
+        <td class="set-breakdown"><span class="set-pill">ONE<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Underground River<span class="jp">地底の大河</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Clearwater Pathway<span class="jp">清水の小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">ZNR<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Undercity Sewers<span class="jp">地底街の下水道</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Gloomlake Verge<span class="jp">グルームレイクの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Deceit<span class="jp">欺瞞の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">THB<span class="n">×3</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>黒赤</h2>
+        <span class="en">Rakdos</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana B">B</span><span class="mana R">R</span></span> <span class="relation ally">友好</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:53%"></div></div>
+      <span class="progress-num">19</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Haunted Ridge<span class="jp">憑依された峰</span></td>
+        <td class="set-breakdown"><span class="set-pill">MID<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Blood Crypt<span class="jp">血の墓所</span></td>
+        <td class="set-breakdown"><span class="set-pill">RNA<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Dragonskull Summit<span class="jp">竜髑髏の山頂</span></td>
+        <td class="set-breakdown"><span class="set-pill">XLN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Blackcleave Cliffs<span class="jp">黒割れの崖</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Sulfurous Springs<span class="jp">硫黄泉</span></td>
+        <td class="set-breakdown"><span class="set-pill">DMU<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Blightstep Pathway<span class="jp">荒廃踏みの小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">KHM<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Raucous Theater<span class="jp">大音声の劇場</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Blazemire Verge<span class="jp">ブレイズマイアの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Malice<span class="jp">悪意の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">THB<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell some">3</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>赤緑</h2>
+        <span class="en">Gruul</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana R">R</span><span class="mana G">G</span></span> <span class="relation ally">友好</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+      <span class="progress-num">18</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Rockfall Vale<span class="jp">落石の谷間</span></td>
+        <td class="set-breakdown"><span class="set-pill">MID<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Stomping Ground<span class="jp">踏み鳴らされる地</span></td>
+        <td class="set-breakdown"><span class="set-pill">RNA<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Rootbound Crag<span class="jp">根縛りの岩山</span></td>
+        <td class="set-breakdown"><span class="set-pill">XLN<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Copperline Gorge<span class="jp">銅線の地溝</span></td>
+        <td class="set-breakdown"><span class="set-pill">ONE<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Karplusan Forest<span class="jp">カープルーザンの森</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Cragcrown Pathway<span class="jp">岩山被りの小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">ZNR<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Commercial District<span class="jp">商業地区</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Thornspire Verge<span class="jp">ソーンスパイアの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Abandon<span class="jp">奔放の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">THB<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell some">3</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>緑白</h2>
+        <span class="en">Selesnya</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana G">G</span><span class="mana W">W</span></span> <span class="relation ally">友好</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:53%"></div></div>
+      <span class="progress-num">19</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Overgrown Farmland<span class="jp">草茂る農地</span></td>
+        <td class="set-breakdown"><span class="set-pill">MID<span class="n">×3</span></span></td>
+        <td class="total-cell some">3</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Temple Garden<span class="jp">寺院の庭</span></td>
+        <td class="set-breakdown"><span class="set-pill">GRN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Sunpetal Grove<span class="jp">陽花弁の木立ち</span></td>
+        <td class="set-breakdown"><span class="set-pill">XLN<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Razorverge Thicket<span class="jp">剃刀境の茂み</span></td>
+        <td class="set-breakdown"><span class="set-pill">ONE<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Brushland<span class="jp">低木林地</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Branchloft Pathway<span class="jp">枝重なる小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">ZNR<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Lush Portico<span class="jp">草萌ゆる玄関</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Hushwood Verge<span class="jp">ハッシュウッドの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Plenty<span class="jp">豊潤の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">THB<span class="n">×3</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>白黒</h2>
+        <span class="en">Orzhov</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana W">W</span><span class="mana B">B</span></span> <span class="relation enemy">対抗</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:72%"></div></div>
+      <span class="progress-num">26</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Shattered Sanctum<span class="jp">砕かれた聖域</span></td>
+        <td class="set-breakdown"><span class="set-pill">VOW<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Godless Shrine<span class="jp">神無き祭殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">RNA<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Isolated Chapel<span class="jp">孤立した礼拝堂</span></td>
+        <td class="set-breakdown"><span class="set-pill">DOM<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Concealed Courtyard<span class="jp">秘密の中庭</span></td>
+        <td class="set-breakdown"><span class="set-pill">OTJ<span class="n">×3</span></span></td>
+        <td class="total-cell some">3</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Caves of Koilos<span class="jp">コイロスの洞窟</span></td>
+        <td class="set-breakdown"><span class="set-pill">DMU<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Brightclimb Pathway<span class="jp">陽光昇りの小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">ZNR<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Shadowy Backstreet<span class="jp">薄暗い裏通り</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Bleachbone Verge<span class="jp">ブリーチボーンの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Silence<span class="jp">静寂の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">M20<span class="n">×4</span></span><span class="set-pill">M21<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">7</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>青赤</h2>
+        <span class="en">Izzet</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana U">U</span><span class="mana R">R</span></span> <span class="relation enemy">対抗</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+      <span class="progress-num">27</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Stormcarved Coast<span class="jp">嵐削りの海岸</span></td>
+        <td class="set-breakdown"><span class="set-pill">VOW<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Steam Vents<span class="jp">蒸気孔</span></td>
+        <td class="set-breakdown"><span class="set-pill">GRN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Sulfur Falls<span class="jp">硫黄の滝</span></td>
+        <td class="set-breakdown"><span class="set-pill">DOM<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Spirebluff Canal<span class="jp">尖塔断の運河</span></td>
+        <td class="set-breakdown"><span class="set-pill">OTJ<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Shivan Reef<span class="jp">シヴの浅瀬</span></td>
+        <td class="set-breakdown"><span class="set-pill">DMU<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Riverglide Pathway<span class="jp">河川滑りの小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">ZNR<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Thundering Falls<span class="jp">轟音の滝</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Riverpyre Verge<span class="jp">リバーパイアーの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Epiphany<span class="jp">天啓の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">M20<span class="n">×4</span></span><span class="set-pill">M21<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">7</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>黒緑</h2>
+        <span class="en">Golgari</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana B">B</span><span class="mana G">G</span></span> <span class="relation enemy">対抗</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+      <span class="progress-num">24</span>
+      <span class="progress-max">/ 32</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Deathcap Glade<span class="jp">死天狗茸の林間地</span></td>
+        <td class="set-breakdown"><span class="set-pill">VOW<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Overgrown Tomb<span class="jp">草むした墓</span></td>
+        <td class="set-breakdown"><span class="set-pill">GRN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Woodland Cemetery<span class="jp">森林の墓地</span></td>
+        <td class="set-breakdown"><span class="set-pill">DOM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Blooming Marsh<span class="jp">花盛りの湿地</span></td>
+        <td class="set-breakdown"><span class="set-pill">OTJ<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Llanowar Wastes<span class="jp">ラノワールの荒原</span></td>
+        <td class="set-breakdown"><span class="set-pill">BRO<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Darkbore Pathway<span class="jp">闇孔の小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">KHM<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Underground Mortuary<span class="jp">地底の遺体安置所</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="missing">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name" style="color:var(--ink-faint)">未収録<span class="jp">このサイクルに該当カードなし</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">—</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Malady<span class="jp">疾病の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">M20<span class="n">×4</span></span><span class="set-pill">M21<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">7</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>赤白</h2>
+        <span class="en">Boros</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana R">R</span><span class="mana W">W</span></span> <span class="relation enemy">対抗</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:88%"></div></div>
+      <span class="progress-num">28</span>
+      <span class="progress-max">/ 32</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Sundown Pass<span class="jp">日没の道</span></td>
+        <td class="set-breakdown"><span class="set-pill">VOW<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Sacred Foundry<span class="jp">聖なる鋳造所</span></td>
+        <td class="set-breakdown"><span class="set-pill">GRN<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Clifftop Retreat<span class="jp">断崖の避難所</span></td>
+        <td class="set-breakdown"><span class="set-pill">DOM<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Inspiring Vantage<span class="jp">感動的な眺望所</span></td>
+        <td class="set-breakdown"><span class="set-pill">OTJ<span class="n">×3</span></span></td>
+        <td class="total-cell some">3</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Battlefield Forge<span class="jp">戦場の鍛冶場</span></td>
+        <td class="set-breakdown"><span class="set-pill">BRO<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Needleverge Pathway<span class="jp">針縁の小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">ZNR<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Elegant Parlor<span class="jp">優雅な談話室</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="missing">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name" style="color:var(--ink-faint)">未収録<span class="jp">このサイクルに該当カードなし</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">—</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Triumph<span class="jp">凱旋の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">M20<span class="n">×4</span></span><span class="set-pill">M21<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">7</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<section class="cycle">
+  <div class="cycle-header">
+    <div>
+      <div class="cycle-name">
+        <h2>緑青</h2>
+        <span class="en">Simic</span>
+      </div>
+      <div class="cycle-mechanic"><span class="mana-pair"><span class="mana G">G</span><span class="mana U">U</span></span> <span class="relation enemy">対抗</span></div>
+    </div>
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+      <span class="progress-num">27</span>
+      <span class="progress-max">/ 36</span>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:200px">種類</th>
+        <th>カード名</th>
+        <th>セット内訳</th>
+        <th style="width:80px;text-align:center">合計</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="owned">
+        <td class="cycle-type">スローランド<span class="mech">Slow Lands</span></td>
+        <td class="land-name">Dreamroot Cascade<span class="jp">夢根の滝</span></td>
+        <td class="set-breakdown"><span class="set-pill">VOW<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ショックランド<span class="mech">Shock Lands</span></td>
+        <td class="land-name">Breeding Pool<span class="jp">繁殖池</span></td>
+        <td class="set-breakdown"><span class="set-pill">RNA<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">チェックランド<span class="mech">Check Lands</span></td>
+        <td class="land-name">Hinterland Harbor<span class="jp">内陸の湾港</span></td>
+        <td class="set-breakdown"><span class="set-pill">DOM<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ファストランド<span class="mech">Fast Lands</span></td>
+        <td class="land-name">Botanical Sanctum<span class="jp">植物の聖域</span></td>
+        <td class="set-breakdown"><span class="set-pill">OTJ<span class="n">×4</span></span></td>
+        <td class="total-cell full">4</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">ペインランド<span class="mech">Pain Lands</span></td>
+        <td class="land-name">Yavimaya Coast<span class="jp">ヤヴィマヤの沿岸</span></td>
+        <td class="set-breakdown"><span class="set-pill">DMU<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">パスウェイ<span class="mech">Pathways (MDFC)</span></td>
+        <td class="land-name">Barkchannel Pathway<span class="jp">樹皮路の小道</span></td>
+        <td class="set-breakdown"><span class="set-pill">KHM<span class="n">×2</span></span></td>
+        <td class="total-cell some">2</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">諜報ランド<span class="mech">Surveil Lands</span></td>
+        <td class="land-name">Hedge Maze<span class="jp">迷路庭園</span></td>
+        <td class="set-breakdown"><span class="set-pill">MKM<span class="n">×1</span></span></td>
+        <td class="total-cell some">1</td>
+      </tr>
+      <tr class="empty">
+        <td class="cycle-type">境界ランド<span class="mech">Verge Lands</span></td>
+        <td class="land-name">Willowrush Verge<span class="jp">ウィローラッシュの境界</span></td>
+        <td class="set-breakdown"><span style="color:var(--ink-faint)">—</span></td>
+        <td class="total-cell none">0</td>
+      </tr>
+      <tr class="owned">
+        <td class="cycle-type">占術ランド<span class="mech">Scry Lands / Temples</span></td>
+        <td class="land-name">Temple of Mystery<span class="jp">神秘の神殿</span></td>
+        <td class="set-breakdown"><span class="set-pill">M20<span class="n">×4</span></span><span class="set-pill">M21<span class="n">×2</span></span><span class="set-pill">FDN<span class="n">×1</span></span></td>
+        <td class="total-cell full">7</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+<div class="breakdown-section">
+  <h3>種類別 集計</h3>
+  <div class="pair-matrix">
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">スローランド</span>
+      <span class="count">39<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Slow Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:98%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">ショックランド</span>
+      <span class="count">40<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Shock Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:100%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">チェックランド</span>
+      <span class="count">27<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Check Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:68%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">ファストランド</span>
+      <span class="count">19<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Fast Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:48%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">ペインランド</span>
+      <span class="count">7<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Pain Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:18%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">パスウェイ</span>
+      <span class="count">34<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Pathways (MDFC)</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:85%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">諜報ランド</span>
+      <span class="count">9<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Surveil Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:22%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">境界ランド</span>
+      <span class="count">2<span class="max"> / 32</span></span>
+    </div>
+    <div class="label">Verge Lands</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:6%"></div></div>
+  </div>
+  <div class="pair-cell">
+    <div class="pair-cell-head">
+      <span class="name">占術ランド</span>
+      <span class="count">52<span class="max"> / 40</span></span>
+    </div>
+    <div class="label">Scry Lands / Temples</div>
+    <div class="mini-bar"><div class="mini-fill" style="width:100%"></div></div>
+  </div>
+  </div>
+</div>
+</div>
+</body>
+</html>
