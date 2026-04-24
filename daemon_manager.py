@@ -57,6 +57,25 @@ def is_daemon_running(base_url: str, timeout: float = 1.0) -> bool:
         return False
 
 
+def has_collection(base_url: str, timeout: float = 1.0) -> bool:
+    """True if the daemon has finished loading a non-empty collection."""
+    base = base_url.rstrip("/")
+    for path in ("/cards", "/collection"):
+        req = urllib.request.Request(base + path, headers=HEADERS)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                data = json.load(r)
+        except (urllib.error.URLError, urllib.error.HTTPError,
+                TimeoutError, ConnectionError, OSError, ValueError):
+            continue
+        cards = data.get("cards") if isinstance(data, dict) else data
+        if cards is None and isinstance(data, dict):
+            cards = data.get("collection")
+        if isinstance(cards, list) and cards:
+            return True
+    return False
+
+
 def _download(url: str, dest: Path, accept: str = "*/*") -> None:
     headers = dict(HEADERS)
     headers["Accept"] = accept
@@ -141,7 +160,12 @@ def ensure_daemon_binary(cache_dir: Path, force_update: bool = False) -> Path:
     return exe
 
 
-def start_daemon(exe: Path, port: int, ready_timeout: float = 15.0) -> subprocess.Popen:
+def start_daemon(
+    exe: Path,
+    port: int,
+    ready_timeout: float = 15.0,
+    collection_timeout: float = 30.0,
+) -> subprocess.Popen:
     print(f"→ starting mtga-tracker-daemon on port {port}")
     popen_kwargs: dict = {
         "cwd": str(exe.parent),
@@ -154,23 +178,45 @@ def start_daemon(exe: Path, port: int, ready_timeout: float = 15.0) -> subproces
     proc = subprocess.Popen([str(exe), "-p", str(port)], **popen_kwargs)
 
     base = f"http://127.0.0.1:{port}"
-    deadline = time.monotonic() + ready_timeout
-    while time.monotonic() < deadline:
+
+    http_deadline = time.monotonic() + ready_timeout
+    http_up = False
+    while time.monotonic() < http_deadline:
         if proc.poll() is not None:
             tail = _read_tail(proc)
             raise SystemExit(
                 f"! mtga-tracker-daemon exited early (code {proc.returncode}).\n{tail}"
             )
         if is_daemon_running(base, timeout=0.5):
-            print("✓ daemon is ready")
-            return proc
+            http_up = True
+            break
         time.sleep(0.5)
 
-    stop_daemon(proc)
-    tail = _read_tail(proc)
-    raise SystemExit(
-        f"! mtga-tracker-daemon did not become ready within {ready_timeout}s.\n{tail}"
+    if not http_up:
+        stop_daemon(proc)
+        tail = _read_tail(proc)
+        raise SystemExit(
+            f"! mtga-tracker-daemon did not become ready within {ready_timeout}s.\n{tail}"
+        )
+
+    print("→ waiting for collection to load...")
+    collection_deadline = time.monotonic() + collection_timeout
+    while time.monotonic() < collection_deadline:
+        if proc.poll() is not None:
+            tail = _read_tail(proc)
+            raise SystemExit(
+                f"! mtga-tracker-daemon exited during warmup (code {proc.returncode}).\n{tail}"
+            )
+        if has_collection(base, timeout=1.0):
+            print("✓ daemon is ready")
+            return proc
+        time.sleep(1.0)
+
+    print(
+        f"! collection still empty after {collection_timeout:.0f}s — "
+        "ensure MTG Arena is running and the Collection screen has been opened"
     )
+    return proc
 
 
 def _read_tail(proc: subprocess.Popen, max_bytes: int = 2048) -> str:
