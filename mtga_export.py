@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Export an MTG Arena collection to CSV via mtga-tracker-daemon + Scryfall."""
 import argparse
+import atexit
 import csv
 import json
 import sys
@@ -9,6 +10,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import daemon_manager
 from lands_report import render_lands_html
 
 SCRYFALL_BULK_INDEX = "https://api.scryfall.com/bulk-data"
@@ -126,56 +128,73 @@ def main() -> int:
                    help="Scryfall bulk-data cache directory")
     p.add_argument("--html", default=None,
                    help="optional HTML 2-color land report output path")
+    p.add_argument("--no-auto-daemon", action="store_true",
+                   help="do not auto-download/launch mtga-tracker-daemon")
+    p.add_argument("--daemon-update", action="store_true",
+                   help="force re-download of mtga-tracker-daemon latest release")
     args = p.parse_args()
 
-    print(f"→ querying daemon at {args.daemon}")
-    raw = query_daemon(args.daemon)
+    managed_proc = None
+    if not args.no_auto_daemon and daemon_manager.is_localhost(args.daemon):
+        if not daemon_manager.is_daemon_running(args.daemon):
+            exe = daemon_manager.ensure_daemon_binary(
+                Path(args.cache), force_update=args.daemon_update)
+            port = daemon_manager.parse_port(args.daemon)
+            managed_proc = daemon_manager.start_daemon(exe, port)
+            atexit.register(daemon_manager.stop_daemon, managed_proc)
 
-    arena_map = load_scryfall_arena_map(Path(args.cache))
+    try:
+        print(f"→ querying daemon at {args.daemon}")
+        raw = query_daemon(args.daemon)
 
-    rows = []
-    missing: list[tuple[int, int]] = []
-    for entry in raw:
-        grp, count = extract_entry(entry)
-        if count <= 0:
-            continue
-        card = arena_map.get(grp)
-        if card is None:
-            missing.append((grp, count))
-            continue
-        rows.append({
-            "Count": count,
-            "Name": card.get("name", ""),
-            "Set Code": card.get("set", "").upper(),
-            "Set Name": card.get("set_name", ""),
-            "Collector Number": card.get("collector_number", ""),
-            "Rarity": card.get("rarity", ""),
-            "Scryfall ID": card.get("id", ""),
-        })
+        arena_map = load_scryfall_arena_map(Path(args.cache))
 
-    out = Path(args.out)
-    fields = ["Count", "Name", "Set Code", "Set Name",
-              "Collector Number", "Rarity", "Scryfall ID"]
-    with out.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        w.writeheader()
-        w.writerows(rows)
+        rows = []
+        missing: list[tuple[int, int]] = []
+        for entry in raw:
+            grp, count = extract_entry(entry)
+            if count <= 0:
+                continue
+            card = arena_map.get(grp)
+            if card is None:
+                missing.append((grp, count))
+                continue
+            rows.append({
+                "Count": count,
+                "Name": card.get("name", ""),
+                "Set Code": card.get("set", "").upper(),
+                "Set Name": card.get("set_name", ""),
+                "Collector Number": card.get("collector_number", ""),
+                "Rarity": card.get("rarity", ""),
+                "Scryfall ID": card.get("id", ""),
+            })
 
-    print(f"✓ wrote {out} ({len(rows)} rows)")
+        out = Path(args.out)
+        fields = ["Count", "Name", "Set Code", "Set Name",
+                  "Collector Number", "Rarity", "Scryfall ID"]
+        with out.open("w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
+            w.writeheader()
+            w.writerows(rows)
 
-    if args.html:
-        html_path = Path(args.html)
-        html_path.write_text(render_lands_html(rows), encoding="utf-8")
-        print(f"✓ wrote {html_path}")
+        print(f"✓ wrote {out} ({len(rows)} rows)")
 
-    if missing:
-        print(f"! {len(missing)} grpIds had no Scryfall arena_id match "
-              "(typically Alchemy or rebalanced cards):")
-        for grp, count in missing[:10]:
-            print(f"    grpId={grp} count={count}")
-        if len(missing) > 10:
-            print(f"    ... and {len(missing) - 10} more")
-    return 0
+        if args.html:
+            html_path = Path(args.html)
+            html_path.write_text(render_lands_html(rows), encoding="utf-8")
+            print(f"✓ wrote {html_path}")
+
+        if missing:
+            print(f"! {len(missing)} grpIds had no Scryfall arena_id match "
+                  "(typically Alchemy or rebalanced cards):")
+            for grp, count in missing[:10]:
+                print(f"    grpId={grp} count={count}")
+            if len(missing) > 10:
+                print(f"    ... and {len(missing) - 10} more")
+        return 0
+    finally:
+        if managed_proc is not None:
+            daemon_manager.stop_daemon(managed_proc)
 
 
 if __name__ == "__main__":
