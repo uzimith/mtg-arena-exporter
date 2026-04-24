@@ -5,8 +5,10 @@ MTG Arena のコレクションを [mtga-tracker-daemon](https://github.com/frca
 ## 必要なもの
 
 - Python 3.10+（標準ライブラリのみ、外部依存なし）
-- [mtga-tracker-daemon](https://github.com/frcaton/mtga-tracker-daemon) が起動していること（デフォルト `http://localhost:6842`）
+- Windows または Linux（[mtga-tracker-daemon](https://github.com/frcaton/mtga-tracker-daemon) の公式ビルドが提供されている環境）
 - MTG Arena を起動してログインし、Collection 画面を一度開いていること（デーモンがコレクションを取得するのに必要）
+
+`--daemon` が localhost を指している場合、mtga-tracker-daemon の最新リリースを GitHub からダウンロードして自動で起動します（バイナリは `--cache` ディレクトリ配下にキャッシュされ、2 回目以降は再利用します）。既に起動済みのデーモンがあればそれを利用します。
 
 ## 使い方
 
@@ -22,8 +24,10 @@ python mtga_export.py
 | --- | --- | --- |
 | `--daemon` | `http://localhost:6842` | mtga-tracker-daemon のベース URL |
 | `--out` | `mtga_collection.csv` | CSV の出力先 |
-| `--cache` | `~/.cache/mtga-export` | Scryfall バルクデータのキャッシュ先 |
+| `--cache` | `~/.cache/mtga-export` | Scryfall バルクデータおよびデーモンバイナリのキャッシュ先 |
 | `--html` | （なし） | 指定すると 2 色土地の所持状況を HTML レポートとして出力 |
+| `--no-auto-daemon` | （無効） | mtga-tracker-daemon の自動ダウンロード・起動を無効化（既存プロセス前提） |
+| `--daemon-update` | （無効） | キャッシュを無視して mtga-tracker-daemon の最新リリースを取り直す |
 
 ### 例
 
